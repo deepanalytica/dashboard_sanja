@@ -2,14 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from streamlit_folium import folium_static
 import folium
 
 # Cargar datos (asumiendo un archivo CSV)
 data = pd.read_csv("cuenta_publica_san_javier_2023.csv")
 
 # --- CONFIGURACIONES ---
-# Configurar la página con un diseño amplio y título personalizado
 st.set_page_config(layout="wide", page_title="Cuenta Pública Interactiva - San Javier 2023")
 
 # --- ENCABEZADO Y PRESENTACIÓN ---
@@ -35,14 +33,9 @@ selected_category = st.sidebar.selectbox("Selecciona una Categoría:", categoria
 estados = data["Estado del Proyecto"].unique()
 selected_estado = st.sidebar.multiselect("Selecciona el Estado del Proyecto:", estados, default=estados)
 
-# Filtro por Localidad (opcional, si los datos lo permiten)
-# localidades = data["Nombre de Localidades o Sectores Beneficiados"].unique()
-# selected_localidad = st.sidebar.selectbox("Selecciona una Localidad:", localidades)
-
 # --- FILTRADO DE DATOS ---
 filtered_data = data[
     (data["Categoría del Proyecto"] == selected_category) & (data["Estado del Proyecto"].isin(selected_estado)) 
-    # & (data["Nombre de Localidades o Sectores Beneficiados"] == selected_localidad)
 ]
 
 # --- SECCIÓN DE DATOS ---
@@ -77,8 +70,18 @@ st.plotly_chart(fig_torta, use_container_width=True)
 st.markdown("Este gráfico de torta muestra la distribución de los proyectos según su categoría.  Puedes observar qué áreas son las que concentran la mayor cantidad de proyectos en la comuna.")
 
 # 3. MAPA INTERACTIVO (requiere datos de geolocalización)
-# st.subheader("Impacto Geográfico de los Proyectos")
-# # ... código para crear el mapa interactivo con folium ...
+st.subheader("Impacto Geográfico de los Proyectos")
+# Asumiendo que 'filtered_data' tiene columnas 'latitud' y 'longitud'
+if 'latitud' in filtered_data.columns and 'longitud' in filtered_data.columns:
+    m = folium.Map(location=[-35.97, -71.66], zoom_start=12)  # Coordenadas de San Javier
+    for index, row in filtered_data.iterrows():
+        folium.Marker(
+            location=[row['latitud'], row['longitud']],
+            popup=f"<b>{row['Nombre del Proyecto o Iniciativa']}</b><br>{row['Descripción del Proyecto']}",
+        ).add_to(m)
+    folium_static(m)
+else:
+    st.warning("No hay datos de geolocalización disponibles para mostrar el mapa.")
 
 # --- SECCIÓN DE PROYECTOS DESTACADOS ---
 st.header("Proyectos Destacados")
