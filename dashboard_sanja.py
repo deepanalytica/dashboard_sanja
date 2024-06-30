@@ -2,85 +2,48 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Cargar datos desde un archivo CSV (reemplazar con la ruta real del archivo)
-data = pd.read_csv("cuenta_publica_2023.csv")
+# -- Cargar DataFrames (Reemplaza con la carga real de tus DataFrames) --
+df_ingresos = pd.DataFrame({
+    'Concepto': ['Impuesto Territorial', 'Permisos de Circulación', 'Fondo Común Municipal', 'Otros Ingresos'],
+    'Monto (M$)': [760.481, 2.197.408, 9.192.511, 3.353.694]
+})
+df_gastos = pd.DataFrame({
+    'Concepto': ['Funcionamiento Municipal', 'Servicios Comunitarios', 'Subvenciones y Aportes', 'Otros Gastos'],
+    'Monto (M$)': [5.150.760, 4.628.532, 2.144.579, 2.765.574]
+})
+df_programas = pd.DataFrame({
+    'Programa': ['Programa Social Comunitario', 'Programa Asistencial', 'OPD San Javier', 'Centro de la Mujer', 'Programa Adulto Mayor', 'Programa Migración', 'Programa Discapacidad', 'Programa Jóvenes', 'Programa Mujeres', 'Programa Vivienda', 'Programa SENDA PREVIENE', 'Programa EDLI', 'Programa Vínculos', 'Programa de Habitabilidad', 'Subsistema Chile Crece Más', 'Programa Fortalecimiento Municipal', 'Programa Sala HEPI CRIANZA', 'Casa del Emprendedor', 'Desarrollo Vitivinícola', 'Convenio PRODESAL', 'Oficina Municipal Agrícola', 'Centro Veterinario Municipal', 'Programa Apoyo Seguridad Alimentaria', 'Programa Mujeres Jefas de Hogar', 'Oficina de Turismo', 'Oficina Municipal de Información Laboral'],
+    'Monto (M$)': [21.541, 119.494, 76.979, 136.463, 79.600, 0, 56.899, 24.500, 87.503, 9.370, 0, 47.529, 0, 38.137, 10.690, 13.637, 0, 16.000, 12.000, 218.134, 89.000, 0, 18.240, 134.753, 12.000, 60.600]
+})
 
-# Título del dashboard
-st.title("Dashboard Cuenta Pública Municipal San Javier 2023")
+# -- Configuración de la página --
+st.set_page_config(page_title="Dashboard Cuenta Pública San Javier 2023", page_icon=":bar_chart:", layout="wide")
 
-# KPIs
+# -- Título del Dashboard --
+st.title("Dashboard Cuenta Pública San Javier 2023")
+
+# -- KPIs --
 col1, col2, col3 = st.columns(3)
+col1.metric("Ingresos Totales", f"{df_ingresos['Monto (M$)'].sum():.2f} M$", delta=None)
+col2.metric("Gastos Totales", f"{df_gastos['Monto (M$)'].sum():.2f} M$", delta=None)
+col3.metric("Saldo", f"{df_ingresos['Monto (M$)'].sum() - df_gastos['Monto (M$)'].sum():.2f} M$", delta=None)
 
-col1.metric("Ingresos Totales", f"${data['Ingresos'].sum():,.2f}")
-col2.metric("Gastos Totales", f"${data['Gastos'].sum():,.2f}")
-col3.metric("Saldo Final", f"${data['Ingresos'].sum() - data['Gastos'].sum():,.2f}")
+# -- Gráficos Interactivos --
+st.subheader("Distribución de Ingresos y Gastos")
+fig_ingresos = px.pie(df_ingresos, values='Monto (M$)', names='Concepto', title="Ingresos")
+fig_gastos = px.pie(df_gastos, values='Monto (M$)', names='Concepto', title="Gastos")
+col1, col2 = st.columns(2)
+col1.plotly_chart(fig_ingresos, use_container_width=True)
+col2.plotly_chart(fig_gastos, use_container_width=True)
 
-# Gráfico de ingresos y gastos por área
-st.header("Ingresos y Gastos por Área")
-area_chart = px.bar(
-    data,
-    x="Área",
-    y=["Ingresos", "Gastos"],
-    barmode="group",
-    title="Comparación de Ingresos y Gastos por Área",
-)
-st.plotly_chart(area_chart)
+st.subheader("Inversión en Programas Municipales")
+fig_programas = px.bar(df_programas, x='Programa', y='Monto (M$)', title="Inversión por Programa")
+st.plotly_chart(fig_programas, use_container_width=True)
 
-# Gráfico de pastel de distribución de gastos
-st.header("Distribución de Gastos")
-gastos_pie = px.pie(
-    data,
-    values="Gastos",
-    names="Área",
-    title="Distribución del Presupuesto Municipal por Área",
-)
-st.plotly_chart(gastos_pie)
+# -- Información para la Toma de Decisiones --
+st.subheader("Análisis de Datos para la Toma de Decisiones")
+st.write("Aquí se pueden agregar análisis más específicos, como comparaciones entre periodos, análisis de tendencias, etc. utilizando los DataFrames cargados.")
 
-# Gráfico de línea de evolución de ingresos y gastos
-st.header("Evolución de Ingresos y Gastos")
-time_chart = px.line(
-    data,
-    x="Mes",
-    y=["Ingresos", "Gastos"],
-    title="Evolución Mensual de Ingresos y Gastos",
-)
-st.plotly_chart(time_chart)
-
-# Filtros interactivos para los gráficos
-st.sidebar.header("Filtros")
-selected_area = st.sidebar.multiselect(
-    "Seleccionar Área", options=data["Área"].unique()
-)
-
-filtered_data = data
-if selected_area:
-    filtered_data = data[data["Área"].isin(selected_area)]
-
-# Actualizar los gráficos con los datos filtrados
-area_chart.update_traces(data=filtered_data)
-gastos_pie.update_traces(data=filtered_data)
-time_chart.update_traces(data=filtered_data)
-
-# Información adicional
-st.header("Información Adicional")
-
-# Mostrar información sobre programas y proyectos
-st.subheader("Programas y Proyectos Destacados")
-for index, row in data.iterrows():
-    st.write(
-        f"**{row['Área']}**: {row['Descripción']} (Ingresos: ${row['Ingresos']:,.2f}, Gastos: ${row['Gastos']:,.2f})"
-    )
-
-# Mostrar información sobre el plan de desarrollo comunal
-st.subheader("Plan de Desarrollo Comunal")
-st.write(
-    "Información sobre el plan de desarrollo comunal, objetivos, metas y avances."
-)
-
-# Enlace a la página web del municipio
-st.write("[Página Web del Municipio](www.imsanjavier.cl)")
-
-# Mensaje final
-st.write(
-    "Este dashboard se creó para brindar información transparente a la comunidad sobre la gestión municipal."
-)
+# -- Información para la Comunidad --
+st.subheader("Información Relevante para la Comunidad")
+st.write("Esta sección puede mostrar información resumida y fácil de entender para la comunidad, como los programas con mayor inversión, los logros más importantes, etc.")
