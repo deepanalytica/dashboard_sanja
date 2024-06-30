@@ -2,75 +2,85 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Título de la app
-st.title("Cuenta Pública Municipal - San Javier 2023")
+# Cargar datos desde un archivo CSV (reemplazar con la ruta real del archivo)
+data = pd.read_csv("cuenta_publica_2023.csv")
 
-# Datos de ejemplo - Reemplazar con datos del PDF
-data_proyectos = {
-    'Proyecto': ['Mejoramiento Plaza de Armas', 'Construcción Sede Social', 'Programa de Reforestación', 'Implementación de Cámaras de Seguridad'],
-    'Categoría': ['Desarrollo Urbano', 'Desarrollo Social', 'Medio Ambiente', 'Seguridad Pública'],
-    'Sector': ['Urbano', 'Rural', 'Rural', 'Urbano'],
-    'Beneficiarios': [5000, 200, 1000, 3000],
-    'Monto (M$)': [2000, 500, 100, 800],
-    'Estado': ['Finalizado', 'En ejecución', 'En ejecución', 'Finalizado']
-}
+# Título del dashboard
+st.title("Dashboard Cuenta Pública Municipal San Javier 2023")
 
-df_proyectos = pd.DataFrame(data_proyectos)
+# KPIs
+col1, col2, col3 = st.columns(3)
 
-# Sidebar con opciones de navegación
-st.sidebar.title("Menú")
-opcion = st.sidebar.radio("Selecciona una opción:", ["Resumen General", "Proyectos", "Finanzas", "Programas Sociales", "Educación", "Salud"])
+col1.metric("Ingresos Totales", f"${data['Ingresos'].sum():,.2f}")
+col2.metric("Gastos Totales", f"${data['Gastos'].sum():,.2f}")
+col3.metric("Saldo Final", f"${data['Ingresos'].sum() - data['Gastos'].sum():,.2f}")
 
-# Mostrar información según la opción seleccionada
-if opcion == "Resumen General":
-    st.header("Resumen General")
-    # Mostrar resumen general de la gestión municipal
-    #  - Ingresos y Gastos totales
-    #  - Número de proyectos ejecutados
-    #  - Número de beneficiarios de programas sociales
-    #  - Gráficos resumen
+# Gráfico de ingresos y gastos por área
+st.header("Ingresos y Gastos por Área")
+area_chart = px.bar(
+    data,
+    x="Área",
+    y=["Ingresos", "Gastos"],
+    barmode="group",
+    title="Comparación de Ingresos y Gastos por Área",
+)
+st.plotly_chart(area_chart)
 
-elif opcion == "Proyectos":
-    st.header("Proyectos")
+# Gráfico de pastel de distribución de gastos
+st.header("Distribución de Gastos")
+gastos_pie = px.pie(
+    data,
+    values="Gastos",
+    names="Área",
+    title="Distribución del Presupuesto Municipal por Área",
+)
+st.plotly_chart(gastos_pie)
 
-    # Filtro por categoría
-    categoria_seleccionada = st.selectbox("Filtrar por Categoría:", df_proyectos['Categoría'].unique())
-    df_filtrado = df_proyectos[df_proyectos['Categoría'] == categoria_seleccionada]
+# Gráfico de línea de evolución de ingresos y gastos
+st.header("Evolución de Ingresos y Gastos")
+time_chart = px.line(
+    data,
+    x="Mes",
+    y=["Ingresos", "Gastos"],
+    title="Evolución Mensual de Ingresos y Gastos",
+)
+st.plotly_chart(time_chart)
 
-    # Tabla con información de proyectos
-    st.table(df_filtrado)
+# Filtros interactivos para los gráficos
+st.sidebar.header("Filtros")
+selected_area = st.sidebar.multiselect(
+    "Seleccionar Área", options=data["Área"].unique()
+)
 
-    # Gráfico interactivo de proyectos por sector
-    fig = px.bar(df_proyectos, x='Sector', y='Monto (M$)', color='Categoría', title='Inversión en Proyectos por Sector')
-    st.plotly_chart(fig)
+filtered_data = data
+if selected_area:
+    filtered_data = data[data["Área"].isin(selected_area)]
 
-elif opcion == "Finanzas":
-    st.header("Finanzas")
-    # Mostrar información financiera detallada
-    #  - Ingresos y Gastos por categoría
-    #  - Gráficos de evolución de ingresos y gastos
-    #  - Balance general
+# Actualizar los gráficos con los datos filtrados
+area_chart.update_traces(data=filtered_data)
+gastos_pie.update_traces(data=filtered_data)
+time_chart.update_traces(data=filtered_data)
 
-elif opcion == "Programas Sociales":
-    st.header("Programas Sociales")
-    # Mostrar información de los programas sociales
-    #  - Descripción de cada programa
-    #  - Número de beneficiarios
-    #  - Monto de inversión
-    #  - Resultados a corto y largo plazo
+# Información adicional
+st.header("Información Adicional")
 
-elif opcion == "Educación":
-    st.header("Educación")
-    # Mostrar información del departamento de educación
-    #  - Número de estudiantes por nivel
-    #  - Resultados académicos
-    #  - Proyectos de infraestructura
-    #  - Programas de apoyo a estudiantes
+# Mostrar información sobre programas y proyectos
+st.subheader("Programas y Proyectos Destacados")
+for index, row in data.iterrows():
+    st.write(
+        f"**{row['Área']}**: {row['Descripción']} (Ingresos: ${row['Ingresos']:,.2f}, Gastos: ${row['Gastos']:,.2f})"
+    )
 
-elif opcion == "Salud":
-    st.header("Salud")
-    # Mostrar información del departamento de salud
-    #  - Número de atenciones por programa
-    #  - Indicadores de salud
-    #  - Proyectos de infraestructura
-    #  - Programas de prevención
+# Mostrar información sobre el plan de desarrollo comunal
+st.subheader("Plan de Desarrollo Comunal")
+st.write(
+    "Información sobre el plan de desarrollo comunal, objetivos, metas y avances."
+)
+
+# Enlace a la página web del municipio
+st.write("[Página Web del Municipio](www.imsanjavier.cl)")
+
+# Mensaje final
+st.write(
+    "Este dashboard se creó para brindar información transparente a la comunidad sobre la gestión municipal."
+)
